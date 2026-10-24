@@ -18,7 +18,8 @@ export default function (view) {
       () => Xtream.fetchJson('Xtream/SeriesCategories'),
       (categoryId) => Xtream.fetchJson(`Xtream/SeriesCategories/${categoryId}`),
     ).then((data) => {
-      view.querySelector('#XtreamSeriesForm').addEventListener('submit', (e) => {
+      // viewshow fires on every visit; assigning replaces the previous handler.
+      view.querySelector('#XtreamSeriesForm').onsubmit = (e) => {
         Dashboard.showLoadingMsg();
 
         ApiClient.getPluginConfiguration(pluginId).then((config) => {
@@ -31,7 +32,7 @@ export default function (view) {
 
         e.preventDefault();
         return false;
-      });
+      };
     }).catch((error) => {
       console.error('Failed to load series categories:', error);
       Dashboard.hideLoadingMsg();

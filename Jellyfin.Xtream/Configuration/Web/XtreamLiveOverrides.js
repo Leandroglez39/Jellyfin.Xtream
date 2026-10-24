@@ -53,6 +53,7 @@ export default function (view) {
 
     const getConfig = ApiClient.getPluginConfiguration(pluginId);
     const table = view.querySelector('#LiveChannels');
+    table.innerHTML = '';
     Dashboard.showLoadingMsg();
     Promise.all([
       getConfig.then((config) => config.LiveTvOverrides),
@@ -65,7 +66,8 @@ export default function (view) {
       }
       Dashboard.hideLoadingMsg();
 
-      view.querySelector('#XtreamLiveOverridesForm').addEventListener('submit', (e) => {
+      // viewshow fires on every visit; assigning replaces the previous handler.
+      view.querySelector('#XtreamLiveOverridesForm').onsubmit = (e) => {
         Dashboard.showLoadingMsg();
 
         ApiClient.getPluginConfiguration(pluginId).then((config) => {
@@ -80,7 +82,7 @@ export default function (view) {
 
         e.preventDefault();
         return false;
-      });
+      };
     });
   }));
 }

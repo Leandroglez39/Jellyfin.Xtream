@@ -46,12 +46,13 @@ export default function (view) {
     };
     reloadStatus();
 
-    view.querySelector('#UserAgentFromBrowser').addEventListener('click', (e) => {
+    // viewshow fires on every visit; assigning replaces the previous handlers.
+    view.querySelector('#UserAgentFromBrowser').onclick = (e) => {
       e.preventDefault();
       view.querySelector('#UserAgent').value = navigator.userAgent;
-    });
+    };
 
-    view.querySelector('#XtreamCredentialsForm').addEventListener('submit', (e) => {
+    view.querySelector('#XtreamCredentialsForm').onsubmit = (e) => {
       Dashboard.showLoadingMsg();
 
       ApiClient.getPluginConfiguration(pluginId).then((config) => {
@@ -67,6 +68,6 @@ export default function (view) {
 
       e.preventDefault();
       return false;
-    });
+    };
   }));
 }

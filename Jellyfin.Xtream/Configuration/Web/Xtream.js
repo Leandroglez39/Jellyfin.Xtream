@@ -153,6 +153,7 @@ const createCategoryRow = (wrapper, category, loadItems) => {
 
 const populateCategoriesTable = (table, loadConfig, loadCategories, loadItems) => {
   Dashboard.showLoadingMsg();
+  table.innerHTML = '';
   const fetchConfig = loadConfig();
   const fetchCategories = loadCategories();
 

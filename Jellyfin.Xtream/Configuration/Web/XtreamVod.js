@@ -20,7 +20,8 @@ export default function (view) {
       () => Xtream.fetchJson('Xtream/VodCategories'),
       (categoryId) => Xtream.fetchJson(`Xtream/VodCategories/${categoryId}`),
     ).then((data) => {
-      view.querySelector('#XtreamVodForm').addEventListener('submit', (e) => {
+      // viewshow fires on every visit; assigning replaces the previous handler.
+      view.querySelector('#XtreamVodForm').onsubmit = (e) => {
         Dashboard.showLoadingMsg();
 
         ApiClient.getPluginConfiguration(pluginId).then((config) => {
@@ -34,7 +35,7 @@ export default function (view) {
 
         e.preventDefault();
         return false;
-      });
+      };
     }).catch((error) => {
       console.error('Failed to load VOD categories:', error);
       Dashboard.hideLoadingMsg();

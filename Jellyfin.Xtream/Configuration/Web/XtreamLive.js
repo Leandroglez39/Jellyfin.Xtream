@@ -18,7 +18,8 @@ export default function (view) {
       () => Xtream.fetchJson('Xtream/LiveCategories'),
       (categoryId) => Xtream.fetchJson(`Xtream/LiveCategories/${categoryId}`),
     ).then((data) => {
-      view.querySelector('#XtreamLiveForm').addEventListener('submit', (e) => {
+      // viewshow fires on every visit; assigning replaces the previous handler.
+      view.querySelector('#XtreamLiveForm').onsubmit = (e) => {
         Dashboard.showLoadingMsg();
 
         ApiClient.getPluginConfiguration(pluginId).then((config) => {
@@ -31,7 +32,7 @@ export default function (view) {
 
         e.preventDefault();
         return false;
-      });
+      };
     }).catch((error) => {
       console.error('Failed to load Live TV categories:', error);
       Dashboard.hideLoadingMsg();

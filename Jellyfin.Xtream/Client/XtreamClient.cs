@@ -16,6 +16,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Reflection;
@@ -39,6 +40,8 @@ namespace Jellyfin.Xtream.Client;
 /// <param name="logger">Instance of the <see cref="ILogger"/> interface.</param>
 public class XtreamClient(HttpClient client, ILogger<XtreamClient> logger) : IDisposable, IXtreamClient
 {
+    private const int MaxAttempts = 3;
+
     private readonly JsonSerializerSettings _serializerSettings = new()
     {
         Error = NullableEventHandler(logger),
@@ -105,9 +108,29 @@ public class XtreamClient(HttpClient client, ILogger<XtreamClient> logger) : IDi
     private async Task<T> QueryApi<T>(ConnectionInfo connectionInfo, string urlPath, CancellationToken cancellationToken)
     {
         Uri uri = new Uri(connectionInfo.BaseUrl + urlPath);
-        string jsonContent = await client.GetStringAsync(uri, cancellationToken).ConfigureAwait(false);
+        string jsonContent = await GetStringWithRetryAsync(uri, cancellationToken).ConfigureAwait(false);
         return JsonConvert.DeserializeObject<T>(jsonContent, _serializerSettings)!;
     }
+
+    private async Task<string> GetStringWithRetryAsync(Uri uri, CancellationToken cancellationToken)
+    {
+        for (int attempt = 1; ; attempt++)
+        {
+            try
+            {
+                return await client.GetStringAsync(uri, cancellationToken).ConfigureAwait(false);
+            }
+            catch (HttpRequestException ex) when (attempt < MaxAttempts && IsTransient(ex.StatusCode))
+            {
+                // Log only the status: the URL contains the provider credentials.
+                logger.LogWarning("Xtream API returned {StatusCode}, retrying ({Attempt}/{MaxAttempts})", (int?)ex.StatusCode, attempt, MaxAttempts);
+                await Task.Delay(TimeSpan.FromMilliseconds(500 * attempt), cancellationToken).ConfigureAwait(false);
+            }
+        }
+    }
+
+    private static bool IsTransient(HttpStatusCode? statusCode) =>
+        statusCode is HttpStatusCode.BadGateway or HttpStatusCode.ServiceUnavailable or HttpStatusCode.GatewayTimeout;
 
     public Task<PlayerApi> GetUserAndServerInfoAsync(ConnectionInfo connectionInfo, CancellationToken cancellationToken) =>
         QueryApi<PlayerApi>(

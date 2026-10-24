@@ -15,7 +15,9 @@
 
 using System;
 using System.Linq;
+using System.Reflection;
 using MediaBrowser.Model.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace Jellyfin.Xtream.Service;
 
@@ -23,7 +25,8 @@ namespace Jellyfin.Xtream.Service;
 /// A service for dealing with stream information.
 /// </summary>
 /// <param name="taskManager">Instance of the <see cref="ITaskManager"/> interface.</param>
-public class TaskService(ITaskManager taskManager)
+/// <param name="logger">Instance of the <see cref="ILogger"/> interface.</param>
+public class TaskService(ITaskManager taskManager, ILogger<TaskService> logger)
 {
     private static Type? FindType(string assembly, string fullName)
     {
@@ -45,10 +48,31 @@ public class TaskService(ITaskManager taskManager)
     {
         Type refreshType = FindType(assembly, fullName) ?? throw new ArgumentException("Refresh task not found");
 
-        // As the type is not publicly visible, use reflection.
+        try
+        {
+            InvokeGeneric(nameof(ITaskManager.CancelIfRunningAndQueue), refreshType);
+        }
+        catch (TargetInvocationException ex)
+        {
+            // Jellyfin can throw while a run of the same task is finishing; queue it anyway.
+            logger.LogWarning(ex.InnerException ?? ex, "Could not cancel task {TaskName}, queueing it instead", fullName);
+            try
+            {
+                InvokeGeneric(nameof(ITaskManager.QueueScheduledTask), refreshType);
+            }
+            catch (TargetInvocationException queueEx)
+            {
+                logger.LogError(queueEx.InnerException ?? queueEx, "Could not queue task {TaskName}", fullName);
+            }
+        }
+    }
+
+    // As the task types are not publicly visible, use reflection.
+    private void InvokeGeneric(string methodName, Type taskType)
+    {
         typeof(ITaskManager)
-            .GetMethod(nameof(ITaskManager.CancelIfRunningAndQueue), 1, [])?
-            .MakeGenericMethod(refreshType)?
+            .GetMethod(methodName, 1, [])?
+            .MakeGenericMethod(taskType)
             .Invoke(taskManager, []);
     }
 }

@@ -43,7 +43,8 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
     /// <param name="xmlSerializer">Instance of the <see cref="IXmlSerializer"/> interface.</param>
     /// <param name="taskManager">Instance of the <see cref="ITaskManager"/> interface.</param>
     /// <param name="xtreamClient">Instance of the <see cref="IXtreamClient"/> interface.</param>
-    public Plugin(IApplicationPaths applicationPaths, IXmlSerializer xmlSerializer, ITaskManager taskManager, IXtreamClient xtreamClient)
+    /// <param name="taskLogger">Instance of the <see cref="ILogger"/> interface for the task service.</param>
+    public Plugin(IApplicationPaths applicationPaths, IXmlSerializer xmlSerializer, ITaskManager taskManager, IXtreamClient xtreamClient, ILogger<TaskService> taskLogger)
         : base(applicationPaths, xmlSerializer)
     {
         _instance = this;
@@ -54,7 +55,7 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
         }
 
         StreamService = new(xtreamClient);
-        TaskService = new(taskManager);
+        TaskService = new(taskManager, taskLogger);
     }
 
     /// <inheritdoc />

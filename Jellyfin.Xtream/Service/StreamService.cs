@@ -95,8 +95,9 @@ public partial class StreamService(IXtreamClient xtreamClient)
     /// The time the media sources of channel items last changed shape.
     /// Jellyfin only rewrites the sources it saved for a channel item when the item changes,
     /// so channel media items carry this as their modification date.
+    /// Bumped when VOD and series switched to ffprobe so existing items drop their placeholder streams.
     /// </summary>
-    public static readonly DateTime MediaSourceRevision = new(2026, 9, 28, 0, 0, 0, DateTimeKind.Utc);
+    public static readonly DateTime MediaSourceRevision = new(2026, 10, 24, 0, 0, 0, DateTimeKind.Utc);
 
     private static readonly Regex _tagRegex = TagRegex();
 

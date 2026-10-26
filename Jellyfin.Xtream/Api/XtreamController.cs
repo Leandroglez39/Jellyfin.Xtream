@@ -13,6 +13,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Mime;
@@ -23,6 +24,7 @@ using Jellyfin.Xtream.Client;
 using Jellyfin.Xtream.Client.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 
 namespace Jellyfin.Xtream.Api;
@@ -33,8 +35,11 @@ namespace Jellyfin.Xtream.Api;
 [ApiController]
 [Route("[controller]")]
 [Produces(MediaTypeNames.Application.Json)]
-public class XtreamController(IXtreamClient xtreamClient) : ControllerBase
+public class XtreamController(IXtreamClient xtreamClient, IMemoryCache memoryCache) : ControllerBase
 {
+    private const string AllLiveStreamsCacheKey = "Xtream.Config.AllLiveStreams";
+    private const int MaxSearchResults = 300;
+
     private static CategoryResponse CreateCategoryResponse(Category category) =>
         new()
         {
@@ -49,6 +54,7 @@ public class XtreamController(IXtreamClient xtreamClient) : ControllerBase
             Name = stream.Name,
             HasCatchup = stream.TvArchive,
             CatchupDuration = stream.TvArchiveDuration,
+            CategoryId = stream.CategoryId,
         };
 
     private static ItemResponse CreateItemResponse(Series series) =>
@@ -122,6 +128,35 @@ public class XtreamController(IXtreamClient xtreamClient) : ControllerBase
           categoryId,
           cancellationToken).ConfigureAwait(false);
         return Ok(streams.Select(CreateItemResponse));
+    }
+
+    /// <summary>
+    /// Search Live TV channels of every category by name.
+    /// </summary>
+    /// <param name="query">Text the channel name must contain; every word must match.</param>
+    /// <param name="cancellationToken">The cancellation token for cancelling requests.</param>
+    /// <returns>The matching channels, capped to keep the page responsive.</returns>
+    [Authorize(Policy = "RequiresElevation")]
+    [HttpGet("LiveSearch")]
+    public async Task<ActionResult<IEnumerable<ItemResponse>>> SearchLiveStreams([FromQuery] string query, CancellationToken cancellationToken)
+    {
+        string[] words = (query ?? string.Empty).Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (words.Length == 0)
+        {
+            return Ok(Array.Empty<ItemResponse>());
+        }
+
+        // The full list is large and slow on some providers; typing a query should not refetch it.
+        if (!memoryCache.TryGetValue(AllLiveStreamsCacheKey, out List<StreamInfo>? all) || all is null)
+        {
+            all = await xtreamClient.GetLiveStreamsAsync(Plugin.Instance.Creds, cancellationToken).ConfigureAwait(false);
+            memoryCache.Set(AllLiveStreamsCacheKey, all, TimeSpan.FromMinutes(10));
+        }
+
+        return Ok(all
+            .Where(s => words.All(w => s.Name.Contains(w, StringComparison.OrdinalIgnoreCase)))
+            .Take(MaxSearchResults)
+            .Select(CreateItemResponse));
     }
 
     /// <summary>

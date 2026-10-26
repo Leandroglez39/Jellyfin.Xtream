@@ -27,6 +27,24 @@
   vertical-align: middle;
 }
 
+.xtream-filters {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 1em;
+  align-items: end;
+}
+
+.xtream-only-selected {
+  grid-column: 1 / -1;
+  margin-bottom: 1em;
+}
+
+.categories-table td.xtream-search-category {
+  white-space: nowrap;
+  opacity: 0.7;
+  padding-left: 1em;
+}
+
 .overrides-table {
   width: 100%;
 }

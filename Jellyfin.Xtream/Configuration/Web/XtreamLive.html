@@ -12,6 +12,21 @@
         <div class="sectionTitleContainer flex align-items-center">
           <h2 class="sectionTitle">Channel selection</h2>
         </div>
+        <div class="xtream-filters">
+          <input is="emby-input" id="ChannelSearch" type="search" label="Search channels in every category" autocomplete="off" />
+          <input is="emby-input" id="CategoryFilter" type="search" label="Filter categories" autocomplete="off" />
+          <label class="xtream-only-selected">
+            <input is="emby-checkbox" id="OnlySelected" type="checkbox" />
+            <span>Only categories with selected channels</span>
+          </label>
+        </div>
+        <div id="SearchResults" class="inputContainer" hidden>
+          <div id="SearchStatus" class="fieldDescription"></div>
+          <table class="categories-table">
+            <tbody id="SearchContent"></tbody>
+          </table>
+        </div>
+        <div id="CategorySummary" class="fieldDescription"></div>
         <div class="inputContainer">
           <table class="categories-table">
             <thead>
